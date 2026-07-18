@@ -1,0 +1,33 @@
+# Build directories
+/build*/
+cmake-build-*/
+
+# Compiled objects and binaries
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dll
+*.exe
+*.exp
+*.pdb
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+compile_commands.json
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Generated benchmark datasets (regenerate with benchmarks/generate_dataset.py)
+/benchmarks/generated-data/

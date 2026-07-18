@@ -1,0 +1,2 @@
+Concurrency becomes easier to reason about when each worker builds local state.
+The shared inverted index is updated once per completed file.
