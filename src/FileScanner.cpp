@@ -2,10 +2,14 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstdint>
 #include <stdexcept>
 #include <string>
 
 namespace file_indexer {
+
+// Skip any single file larger than this so one huge file cannot use up memory.
+constexpr std::uintmax_t kMaxFileSizeBytes = 5 * 1024 * 1024;  // 5 MB
 
 bool FileScanner::isSupported(const std::filesystem::path& path) const {
     std::string extension = path.extension().string();
@@ -42,7 +46,11 @@ ScanResult FileScanner::scan(const std::filesystem::path& root) const {
             ++result.inaccessibleEntries;
             error.clear();
         } else if (regularFile) {
-            if (isSupported(entry.path())) {
+            const auto size = entry.file_size(error);
+            if (error) {
+                ++result.inaccessibleEntries;
+                error.clear();
+            } else if (isSupported(entry.path()) && size <= kMaxFileSizeBytes) {
                 result.files.push_back(entry.path());
             } else {
                 ++result.skippedFiles;

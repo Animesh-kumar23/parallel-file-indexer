@@ -243,7 +243,7 @@ tokens. Zero workers and empty interactive queries are rejected explicitly.
 
 - No persistent index or incremental updates
 - Byte-oriented tokenization rather than full Unicode normalization
-- Whole-file logical indexing with line-by-line input; no file-size admission limit
+- Whole-file logical indexing with line-by-line input; files larger than 5 MB are skipped
 - Search occurs after indexing, not concurrently with active merges
 - Raw-frequency ranking can favor longer files
 - Benchmark results are sensitive to filesystem cache and background I/O
