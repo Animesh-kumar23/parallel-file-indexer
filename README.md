@@ -12,17 +12,18 @@ production search engine.
 - Per-file frequency maps merged into an in-memory inverted index
 - Fixed-size RAII thread pool using mutexes and condition variables
 - Single-term and multi-term ranked search
+- Every indexed file is logged to a local SQLite database (path, size, token count, timestamp)
 - Indexing statistics and worker-count benchmarks
 - CMake options for ASan, UBSan, and TSan
 
 ## Supported toolchain
 
-The project requires C++20 and CMake 3.20 or newer. Current stable development
-versions are recommended: GCC 16.1 and CMake 4.4. A supported recent Clang also
-works.
+The project requires C++20 and CMake 4.4 or newer. The recommended toolchain is
+GCC 16.1 with CMake 4.4. A supported recent Clang also works.
 
-The application uses only the C++ standard library. Python is used solely by the
-optional benchmark dataset generator.
+The application uses the C++ standard library plus SQLite, which must be
+installed as a development library so CMake can find it. Python is used solely
+by the optional benchmark dataset generator.
 
 ## Architecture
 
@@ -53,6 +54,7 @@ Query ---> Tokenizer ---> QueryProcessor ---> ranked SearchResult list
 | `FileProcessor` | Reads one file and creates a local word-frequency map. |
 | `ThreadPool` | Owns workers, synchronizes its task queue, waits for idle, and joins on destruction. |
 | `InvertedIndex` | Coarse-grained merge of completed file results and synchronized reads. |
+| `MetadataStore` | Logs each indexed file's path, size, token count, and index time to SQLite. |
 | `QueryProcessor` | Normalizes unique query terms, combines postings, scores, and sorts. |
 | `SearchEngine` | Coordinates scanning, indexing, searching, statistics, and benchmarks. |
 
@@ -118,6 +120,11 @@ supported as `search "<query>"` inside the session opened by `index`.
 The score is the sum of each distinct query term's frequency in a file. Results
 sort by descending score, then lexicographically by normalized path. Duplicate
 query terms are treated once rather than artificially boosting a score.
+
+Each successful `index` run also writes one row per indexed file to
+`file-indexer.sqlite3` in the current working directory (path, size in bytes,
+token count, and index timestamp). It is a plain append-only log for later
+inspection with any SQLite client; nothing in the program reads it back.
 
 ## Sanitizers and GDB
 
@@ -214,7 +221,8 @@ allocation, and synchronized merges become bottlenecks.
 ## Design decisions and trade-offs
 
 - An in-memory index keeps ownership and concurrency easy to explain but does not
-  survive process exit.
+  survive process exit. SQLite is used only as a simple write-only log of what
+  was indexed; it is never read back to rebuild or shortcut the in-memory index.
 - Contiguous ASCII-style alphanumeric sequences are tokens. This handles CSV
   delimiters predictably but does not provide Unicode word segmentation.
 - Query terms are OR-combined and ranked by raw frequency. There is no phrase,
@@ -243,15 +251,15 @@ tokens. Zero workers and empty interactive queries are rejected explicitly.
 ## Future improvements
 
 Appropriate later extensions include positional postings, stop-word configuration,
-bounded file-size policies, richer benchmark controls, and—in a separately scoped
-optional phase—SQLite metadata for skipping unchanged files. None is part of the
-initial implementation.
+bounded file-size policies, richer benchmark controls, and using the SQLite log
+to skip re-processing unchanged files. None is part of the initial implementation.
 
 ## Resume-ready description
 
 > Built a C++20 parallel file indexer using `std::filesystem`, a custom RAII thread
-> pool, synchronized inverted-index merges, deterministic ranked search, CMake,
-> sanitizer configurations, and reproducible worker-scaling benchmarks.
+> pool, synchronized inverted-index merges, deterministic ranked search, a SQLite
+> indexing log, CMake, sanitizer configurations, and reproducible worker-scaling
+> benchmarks.
 
 ## License
 

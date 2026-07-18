@@ -10,10 +10,12 @@
 #include <mutex>
 #include <stdexcept>
 #include <thread>
+#include <utility>
 
 namespace file_indexer {
 
-SearchEngine::SearchEngine(const std::size_t workerCount) : workerCount_(workerCount) {
+SearchEngine::SearchEngine(const std::size_t workerCount, std::filesystem::path metadataDatabase)
+    : metadataStore_(std::move(metadataDatabase)), workerCount_(workerCount) {
     if (workerCount == 0) {
         throw std::invalid_argument("worker count must be greater than zero");
     }
@@ -38,12 +40,30 @@ IndexStats SearchEngine::indexDirectoryWithWorkers(
     std::atomic<std::size_t> indexedFiles{0};
     std::atomic<std::size_t> failedFiles{0};
     std::mutex warningMutex;
+    std::vector<FileMetadata> metadataUpdates;
     ThreadPool pool(workerCount);
 
     for (const auto& path : scanResult.files) {
-        pool.submit([this, path, &indexedFiles, &failedFiles, &warningMutex] {
+        pool.submit([this, path, &indexedFiles, &failedFiles, &warningMutex, &metadataUpdates] {
             try {
-                index_.merge(processor_.process(path));
+                FileIndexResult processed = processor_.process(path);
+                const std::size_t tokenCount = processed.totalTokens;
+                index_.merge(std::move(processed));
+
+                std::error_code error;
+                const auto size = std::filesystem::file_size(path, error);
+                const auto now = std::chrono::duration_cast<std::chrono::seconds>(
+                    std::chrono::system_clock::now().time_since_epoch());
+                {
+                    std::lock_guard<std::mutex> lock(warningMutex);
+                    metadataUpdates.push_back(FileMetadata{
+                        path,
+                        error ? 0 : static_cast<std::int64_t>(size),
+                        static_cast<std::int64_t>(tokenCount),
+                        now.count(),
+                    });
+                }
+
                 indexedFiles.fetch_add(1, std::memory_order_relaxed);
             } catch (const std::exception& error) {
                 failedFiles.fetch_add(1, std::memory_order_relaxed);
@@ -57,6 +77,7 @@ IndexStats SearchEngine::indexDirectoryWithWorkers(
         });
     }
     pool.waitUntilIdle();
+    metadataStore_.save(metadataUpdates);
     result.indexedFiles = indexedFiles.load(std::memory_order_relaxed);
     result.failedFiles = failedFiles.load(std::memory_order_relaxed);
 

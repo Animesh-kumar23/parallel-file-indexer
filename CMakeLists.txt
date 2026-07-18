@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20...4.4)
+cmake_minimum_required(VERSION 4.4)
 project(parallel_file_indexer VERSION 1.0.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -40,18 +40,20 @@ function(file_indexer_enable_sanitizers target)
 endfunction()
 
 find_package(Threads REQUIRED)
+find_package(SQLite3 REQUIRED)
 
 add_library(file_indexer_core
     src/FileProcessor.cpp
     src/FileScanner.cpp
     src/InvertedIndex.cpp
+    src/MetadataStore.cpp
     src/QueryProcessor.cpp
     src/SearchEngine.cpp
     src/ThreadPool.cpp
     src/Tokenizer.cpp
 )
 target_include_directories(file_indexer_core PUBLIC include)
-target_link_libraries(file_indexer_core PUBLIC Threads::Threads)
+target_link_libraries(file_indexer_core PUBLIC Threads::Threads SQLite3::SQLite3)
 file_indexer_enable_warnings(file_indexer_core)
 file_indexer_enable_sanitizers(file_indexer_core)
 

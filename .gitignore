@@ -31,3 +31,6 @@ Thumbs.db
 
 # Generated benchmark datasets (regenerate with benchmarks/generate_dataset.py)
 /benchmarks/generated-data/
+
+# SQLite metadata database created at runtime
+*.sqlite3
