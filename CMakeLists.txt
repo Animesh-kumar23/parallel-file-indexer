@@ -5,6 +5,14 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Emit compile_commands.json so editors and clangd understand the include paths.
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# This project uses plain headers, not C++20 modules, so skip module dependency
+# scanning. It keeps the build simple and leaves compile_commands.json free of
+# GCC-only flags that clang-based tools like clangd cannot parse.
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+
 option(ENABLE_ASAN "Enable AddressSanitizer" OFF)
 option(ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer" OFF)
 option(ENABLE_TSAN "Enable ThreadSanitizer" OFF)
