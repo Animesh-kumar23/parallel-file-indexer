@@ -27,7 +27,7 @@ public:
 
 private:
     [[nodiscard]] IndexStats indexDirectoryWithWorkers(
-        const std::filesystem::path& directory, std::size_t workerCount);
+        const std::filesystem::path& directory, std::size_t workerCount, bool logMetadata);
 
     FileScanner scanner_;
     FileProcessor processor_;

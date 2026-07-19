@@ -169,7 +169,8 @@ gdb --args ./build/file-indexer index ./sample-data
 `std::thread::hardware_concurrency()` workers, removing duplicate worker counts.
 Every run clears the prior index, uses `std::chrono::steady_clock`, and checks its
 statistics against the one-worker baseline. Speedup is baseline time divided by
-run time.
+run time. Benchmark runs skip the SQLite log so repeated passes do not fill it
+with duplicate rows.
 
 Generate a reproducible development dataset and run a release benchmark:
 

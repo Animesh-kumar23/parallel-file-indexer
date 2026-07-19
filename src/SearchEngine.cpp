@@ -22,11 +22,12 @@ SearchEngine::SearchEngine(const std::size_t workerCount, std::filesystem::path 
 }
 
 IndexStats SearchEngine::indexDirectory(const std::filesystem::path& directory) {
-    return indexDirectoryWithWorkers(directory, workerCount_);
+    return indexDirectoryWithWorkers(directory, workerCount_, true);
 }
 
 IndexStats SearchEngine::indexDirectoryWithWorkers(
-    const std::filesystem::path& directory, const std::size_t workerCount) {
+    const std::filesystem::path& directory, const std::size_t workerCount,
+    const bool logMetadata) {
     index_.clear();
     const auto started = std::chrono::steady_clock::now();
     const ScanResult scanResult = scanner_.scan(directory);
@@ -77,7 +78,10 @@ IndexStats SearchEngine::indexDirectoryWithWorkers(
         });
     }
     pool.waitUntilIdle();
-    metadataStore_.save(metadataUpdates);
+    // Benchmark runs skip the log so repeated passes do not add duplicate rows.
+    if (logMetadata) {
+        metadataStore_.save(metadataUpdates);
+    }
     result.indexedFiles = indexedFiles.load(std::memory_order_relaxed);
     result.failedFiles = failedFiles.load(std::memory_order_relaxed);
 
@@ -103,12 +107,12 @@ BenchmarkResult SearchEngine::benchmark(const std::filesystem::path& directory) 
     // freshly written dataset pays cold-cache (and, on Windows, antivirus-scan)
     // costs that would otherwise be charged entirely to the one-worker baseline
     // and inflate every reported speedup.
-    static_cast<void>(indexDirectoryWithWorkers(directory, workerCounts.front()));
+    static_cast<void>(indexDirectoryWithWorkers(directory, workerCounts.front(), false));
 
     BenchmarkResult benchmarkResult;
     IndexStats baseline;
     for (const std::size_t count : workerCounts) {
-        const IndexStats runStats = indexDirectoryWithWorkers(directory, count);
+        const IndexStats runStats = indexDirectoryWithWorkers(directory, count, false);
         if (benchmarkResult.runs.empty()) {
             baseline = runStats;
         }
