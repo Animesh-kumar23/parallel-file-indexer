@@ -196,6 +196,14 @@ On 2026-07-18, the following checks completed successfully:
 - Clang 22.1.8 ASan+UBSan build
 - Release benchmark with equivalent index statistics at every worker count
 
+On 2026-07-19, after adding SQLite metadata logging and the file-size cap, the
+following checks completed successfully:
+
+- GCC 16.1 debug configure and warning-clean build
+- CLI help, interactive index/search/stats, and benchmark smoke checks
+- SQLite log written with one row per indexed file, and correct sizes and token counts
+- Files larger than 5 MB skipped during scanning, smaller files still indexed
+
 ThreadSanitizer was not run on this Windows host because compiler-rt does not
 support TSan for the Windows target. The separate `ENABLE_TSAN` configuration is
 provided for the primary Linux environment.
